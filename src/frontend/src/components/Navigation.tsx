@@ -2,11 +2,14 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useState } from 'react';
+import { useCart } from '../api/cart';
 
 export default function Navigation() {
   const { isLoggedIn, isAdmin, logout } = useAuth();
   const { darkMode, toggleTheme } = useTheme();
+  const { cartQuery } = useCart();
   const [adminMenuOpen, setAdminMenuOpen] = useState(false);
+  const cartItemCount = cartQuery.data?.itemCount ?? 0;
 
   return (
     <nav
@@ -85,6 +88,13 @@ export default function Navigation() {
             </div>
           </div>
           <div className="flex items-center space-x-4">
+            <Link
+              to="/cart"
+              aria-label={`View cart, ${cartItemCount} ${cartItemCount === 1 ? 'item' : 'items'}`}
+              className={`${darkMode ? 'text-light hover:text-primary' : 'text-gray-700 hover:text-primary'} px-2 py-2 rounded-md text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary`}
+            >
+              Cart <span aria-hidden="true">({cartItemCount})</span>
+            </Link>
             <button
               onClick={toggleTheme}
               className="p-2 rounded-full focus:outline-none transition-colors"

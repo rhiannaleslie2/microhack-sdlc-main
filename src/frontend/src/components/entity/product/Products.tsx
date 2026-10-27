@@ -3,6 +3,7 @@ import axios from 'axios';
 import { useQuery } from 'react-query';
 import { api } from '../../../api/config';
 import { useTheme } from '../../../context/ThemeContext';
+import { useCart } from '../../../api/cart';
 
 interface Product {
   productId: number;
@@ -27,6 +28,7 @@ export default function Products() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showModal, setShowModal] = useState(false);
   const { data: products, isLoading, error } = useQuery('products', fetchProducts);
+  const { cartQuery, addItem } = useCart();
   const { darkMode } = useTheme();
 
   const filteredProducts = products?.filter(
@@ -45,19 +47,23 @@ export default function Products() {
   const handleQuantityChange = (productId: number, change: number) => {
     setQuantities((prev) => ({
       ...prev,
-      [productId]: Math.max(0, (prev[productId] || 0) + change),
+      [productId]: Math.max(0, (prev[productId] ?? 1) + change),
     }));
   };
 
   const handleAddToCart = (productId: number) => {
-    const quantity = quantities[productId] || 0;
-    if (quantity > 0) {
-      // TODO: Implement cart functionality
-      alert(`Added ${quantity} items to cart`);
-      setQuantities((prev) => ({
-        ...prev,
-        [productId]: 0,
-      }));
+    const quantity = quantities[productId] ?? 1;
+    if (quantity > 0 && !cartQuery.isLoading && !cartQuery.isError) {
+      addItem.mutate(
+        { productId, quantity },
+        {
+          onSuccess: () =>
+            setQuantities((prev) => ({
+              ...prev,
+              [productId]: 0,
+            })),
+        },
+      );
     }
   };
 
@@ -103,6 +109,17 @@ export default function Products() {
           >
             Products
           </h1>
+
+          {(cartQuery.isError || addItem.isError) && (
+            <p role="alert" className="text-red-600">
+              The cart couldn’t be updated. Check your connection and try again.
+            </p>
+          )}
+          {addItem.isSuccess && (
+            <p role="status" className="text-green-700" aria-live="polite">
+              Added to your cart.
+            </p>
+          )}
 
           <div className="relative">
             <input
@@ -157,6 +174,7 @@ export default function Products() {
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
             {filteredProducts?.map((product) => {
               const hasDiscount = product.discount != null && product.discount > 0;
+              const quantity = quantities[product.productId] ?? 1;
               return (
                 <div
                   key={product.productId}
@@ -224,7 +242,7 @@ export default function Products() {
                           aria-label={`Quantity of ${product.name}`}
                           id={`qty-${product.productId}`}
                         >
-                          {quantities[product.productId] || 0}
+                          {quantity}
                         </span>
                         <button
                           onClick={() => handleQuantityChange(product.productId, 1)}
@@ -237,12 +255,12 @@ export default function Products() {
                       </div>
                       <button
                         onClick={() => handleAddToCart(product.productId)}
-                        className={`px-4 py-2 rounded-lg transition-colors ${quantities[product.productId]
+                        className={`px-4 py-2 rounded-lg transition-colors ${quantity
                           ? 'bg-primary hover:bg-accent text-white'
                           : `${darkMode ? 'bg-gray-700 text-gray-400' : 'bg-gray-200 text-gray-500'} cursor-not-allowed`
                           }`}
-                        disabled={!quantities[product.productId]}
-                        aria-label={`Add ${quantities[product.productId] || 0} ${product.name} to cart`}
+                        disabled={!quantity || cartQuery.isLoading || cartQuery.isError || addItem.isLoading}
+                        aria-label={`Add ${quantity} ${product.name} to cart`}
                         id={`add-to-cart-${product.productId}`}
                       >
                         Add to Cart
