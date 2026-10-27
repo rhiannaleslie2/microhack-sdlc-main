@@ -40,8 +40,14 @@ jobs:
           tenant-id: ${{ env.AZURE_TENANT_ID }}
           subscription-id: ${{ env.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Ensure resource group exists
-        run: az group create --name "$RESOURCE_GROUP" --location "$LOCATION" --output none
+      - name: Verify resource group exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ "$(az group exists --name "$RESOURCE_GROUP" --output tsv)" != "true" ]]; then
+            echo "::error::Resource group '$RESOURCE_GROUP' does not exist. Create it before running this workflow."
+            exit 1
+          fi
 
       - name: Find bootstrapped registry
         shell: bash
