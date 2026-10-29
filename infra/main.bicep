@@ -145,7 +145,6 @@ module apiApp 'modules/containerapp.bicep' = {
         name: 'sqlite-data'
         storageType: 'AzureFile'
         storageName: databaseStorageName
-        accessMode: 'ReadWrite'
       }
     ]
     volumeMounts: [
@@ -203,11 +202,11 @@ module frontendApp 'modules/containerapp.bicep' = {
     env: [
       {
         name: 'API_HOST'
-        value: apiAppName
+        value: apiApp.outputs.fqdn
       }
       {
         name: 'API_PORT'
-        value: '3000'
+        value: '443'
       }
     ]
     probes: [
